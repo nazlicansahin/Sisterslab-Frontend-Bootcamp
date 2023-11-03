@@ -14,3 +14,9 @@ export const fetchCharacters = async () => {
   const response = await axiosInstance.get('/character');
   return response.data.results;
 };
+
+
+export const fetchLocations = async () => {
+  const response = await axiosInstance.get('/location');
+  return response.data.results;
+};
