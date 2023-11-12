@@ -1,75 +1,120 @@
 import { useEffect, useState } from 'react';
-import { fetchCharacters } from '../api';
+import { fetchCharacterWithSearch, fetchCharacters } from '../api';
 import {
   Button,
-  Card,
-  CardActions,
-  CardMedia,
-  IconButton,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
-import CardContentComponent from '../../components/CardContentComponent';
+import { useRouter } from 'next/router';
+import InfoCard from '@/components/InfoCard';
+
 const Characters = () => {
+  const router = useRouter();
   const [characters, setCharacters] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [favorites, setFavorites] = useState([]);
+  const [searchText, setSearchText] = useState('');
+  const [searchBy, setSearchBy] = useState('name');
+  const [errorFetch, setErrorFetch] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const getCharacters = async () => {
-    const charactersData = await fetchCharacters();
-    setCharacters(charactersData);
+  const fetchCharacterData = () => {
+    setLoading(true);
+    const fetchFunction = searchText
+      ? fetchCharacterWithSearch
+      : fetchCharacters;
+
+    fetchFunction(searchText, searchBy)
+      .then((charactersList) => {
+        setCharacters(charactersList);
+        setErrorFetch(null);
+      })
+      .catch((error) => {
+        setErrorFetch(error.message || 'Bir hata oluştu');
+      })
+      .finally(() => setLoading(false));
   };
-
   useEffect(() => {
-    getCharacters();
+    fetchCharacterData();
+
+    const storedFavorites = localStorage.getItem('favorites');
+    if (storedFavorites) {
+      setFavorites(JSON.parse(storedFavorites));
+    }
   }, []);
 
-  const handleSearchChange = (e) => { //
-    setSearchQuery(e.target.value);
+  const handleClick = (id) => {
+    router.push(`/characters/${id}`);
   };
 
+  const handleFavoriteToggle = (id) => {
+    const newFavorites = favorites.includes(id)
+      ? favorites.filter((favoriteId) => favoriteId !== id)
+      : [...favorites, id];
 
-  const filteredCharacters = searchQuery //
-    ? characters.filter((character) =>
-        character.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : characters;
+    setFavorites(newFavorites);
+    localStorage.setItem('favorites', JSON.stringify(newFavorites));
+  };
 
+  const isFavorite = (id) => favorites.includes(id);
   return (
     <Stack spacing={2}>
-      <TextField
-        id="search"
-        label="Search Character"
-        variant="outlined"
-        size="small"
-        value={searchQuery}
-        onChange={handleSearchChange}
-        sx={{ width: 300 }}
-      />
-      <Stack spacing={{ xs: 1, sm: 2 }} direction="row" useFlexGap flexWrap="wrap">
-        {filteredCharacters.map((character) => (
-          // <Card key={character.id} sx={{ width: '150px' }}>
-          //   <CardMedia component="img" alt="character" height="140" image={character.image} />
-          //   <CardContent>
-          //     <Typography variant="h5" component="div">
-          //       {character.name}
-          //     </Typography>
-          //     <Typography variant="body2" color="text.secondary">
-          //       {character.gender} {character.status}
-          //     </Typography>
-          //   </CardContent>
-          //   <CardActions>
-          //     <IconButton aria-label="add to favorites">
-          //       <FavoriteIcon color="error" />
-          //     </IconButton>
-          //     <Button size="small" variant="text" onClick={() => handleCharacterSelect(character)}>
-          //       Details
-          //     </Button>
-          //   </CardActions>
-          // </Card>
-          <CardContentComponent character= {character}  key={character.id} sx={{ width: '150px' }} />
-
-        ))}
+      <Stack direction="row" spacing={2}>
+        <FormControl size="small" sx={{ width: '150px' }}>
+          <InputLabel id="demo-simple-select-label">Search By</InputLabel>
+          <Select
+            labelId="demo-simple-select-label"
+            id="demo-simple-select"
+            value={searchBy}
+            label="Age"
+            onChange={(e) => setSearchBy(e.target.value)}
+          >
+            <MenuItem value="name">Name</MenuItem>
+            <MenuItem value="status">Status</MenuItem>
+            <MenuItem value="species">Species</MenuItem>
+          </Select>
+        </FormControl>
+        <TextField
+          label="Search"
+          variant="outlined"
+          size="small"
+          fullWidth
+          placeholder="Enter search text"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+        />
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={fetchCharacterData}
+        >
+          Search
+        </Button>
+      </Stack>
+      <Stack
+        spacing={{ xs: 1, sm: 2 }}
+        direction="row"
+        useFlexGap
+        flexWrap="wrap"
+      >
+        {errorFetch ? (
+          <Typography color="error">{errorFetch}</Typography>
+        ) : (
+          characters?.map((character) => (
+            <InfoCard
+              key={character.id}
+              character={character}
+              handleFavoriteToggle={handleFavoriteToggle}
+              isFavorite={isFavorite}
+              handleClick={handleClick}
+              loading={loading}
+            />
+          ))
+        )}
       </Stack>
     </Stack>
   );
