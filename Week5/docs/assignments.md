@@ -1,6 +1,6 @@
 ## 5. Hafta Ödevleri
 
-1. **useRouter**:
+1. **useRouter**: 
    gecen hafta basladiginiz
    ( **Yeni Proje Başlatma**:
    - Rick and Morty projesine benzer bir projeye başlayın ve **pages router** kullanın.)
